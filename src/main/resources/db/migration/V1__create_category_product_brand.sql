@@ -35,6 +35,7 @@ CREATE TABLE product (
                          category_id INT NOT NULL,
                          brand_id INT,
                          title VARCHAR(255) NOT NULL,
+                         trade_type VARCHAR(255) NOT NULL,
                          description TEXT NOT NULL,
                          price DECIMAL(18, 0) NOT NULL,
                          status ENUM('SALE', 'RESERVED', 'SOLD_OUT') DEFAULT 'SALE',

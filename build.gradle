@@ -41,13 +41,28 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
     //프로메테우스에게 매트릭 (Metrics - 수치화된 코드)
     // Source: https://mvnrepository.com/artifact/io.micrometer/micrometer-registry-prometheus
     implementation "io.micrometer:micrometer-registry-prometheus"
 
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     // 자바언어에서 xml을 조절하는 poi
     // Source: https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-schemas
     implementation 'org.apache.poi:poi-ooxml:5.2.5'
+
+    //jakarta.validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    // mysql
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    //Flyway
+    implementation 'org.flywaydb:flyway-core' //Flyway
+    implementation 'org.flywaydb:flyway-mysql' //Flyway MySQL N
+    runtimeOnly 'com.mysql:mysql-connector-j'//JDBC 210I tH
+    testRuntimeOnly "com.mysql:mysql-connector-j" // CI 수행 시 테스트에도 드라이버 포함
 }
 
 dependencyManagement {

@@ -1,15 +1,21 @@
+// 파일: src/main/java/com/ch/swaplyproduct/controller/ProductController.java
 package com.ch.swaplyproduct.controller;
 
-import com.ch.swaplyproduct.config.AmqpConfig;
-import com.ch.swaplyproduct.util.ExcelParser;
+import com.ch.swaplyproduct.product.dto.ProductCreateRequest;
+import com.ch.swaplyproduct.product.dto.ProductResponse;
+import com.ch.swaplyproduct.product.entity.ProductStatus;
+import com.ch.swaplyproduct.service.ProductService;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -17,40 +23,56 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ProductController {
 
-    private final ExcelParser excelParser;
+    private final ProductService productService;
 
-    // 1. 아주 쉬운 GET 방식 테스트 (브라우저 주소창에 바로 입력 가능!)
-    @GetMapping("/hello")
-    public ResponseEntity<?> hello() {
-        return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "message", "게이트웨이-프로덕트 연결 성공!"
-        ));
+    // 1️⃣ 상품 등록
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ProductResponse createProduct(
+            @ModelAttribute @Valid ProductCreateRequest request,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images
+    ) {
+        // 💡 로그를 찍어서 데이터가 들어오는지 확인하세요!
+        log.info("수신 데이터: {}", request);
+        return productService.create(request, images);
     }
 
+    // 2️⃣ 상품 상세 조회
+    @GetMapping("/{productId}")
+    public ProductResponse getProduct(@PathVariable Long productId) {
+        return productService.getDetail(productId);
+    }
 
-        private final RabbitTemplate rabbitTemplate;
+    // 3️⃣ 상품 목록 조회 (페이징 + 필터)
+    @GetMapping
+    public Page<ProductResponse> listProducts(
+            @RequestParam(required = false) Long sellerId,
+            @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) ProductStatus status,
+            Pageable pageable
+    ) {
+        return productService.getList(sellerId, categoryId, keyword, status, pageable);
+    }
 
-        @PostMapping("/mq-test")
-        public ResponseEntity<?> sendTestMessage() {
-            // 1. 보낼 목업 데이터 생성
-            Map<String, Object> orderEvent = new HashMap<>();
-            orderEvent.put("orderId", 12345);
-            orderEvent.put("userId", "user_admin");
-            orderEvent.put("productName", "테스트 상품 A");
-            orderEvent.put("amount", 2);
-            orderEvent.put("status", "CREATED");
+    // 4️⃣ 좋아요 추가
+    @PostMapping("/{productId}/wish")
+    public void addWish(@PathVariable Long productId,
+                        @RequestParam Long userId) {
+        productService.addWish(productId, userId);
+    }
 
-            // 2. RabbitMQ로 전송 (설정하신 이름 그대로 사용)
-            log.info("RabbitMQ 메시지 발행 시도: {}", orderEvent);
-            rabbitTemplate.convertAndSend(
-                    AmqpConfig.ORDER_CREATED_EXCHANGE,
-                    AmqpConfig.ORDER_CREATED_ROUTING_KEY,
-                    orderEvent
-            );
+    // 5️⃣ 좋아요 취소
+    @DeleteMapping("/{productId}/wish")
+    public void removeWish(@PathVariable Long productId,
+                           @RequestParam Long userId) {
+        productService.removeWish(productId, userId);
+    }
 
-            return ResponseEntity.ok(Map.of("msg", "메시지가 큐로 성공적으로 발송되었습니다!"));
-        }
-
-
+    // 6️⃣ 상품 상태 변경
+    @PatchMapping("/{productId}/status")
+    public void changeStatus(@PathVariable Long productId,
+                             @RequestParam ProductStatus currentStatus,
+                             @RequestParam ProductStatus newStatus) {
+        productService.changeStatus(productId, currentStatus, newStatus);
+    }
 }

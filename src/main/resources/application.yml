@@ -2,8 +2,13 @@ spring:
   application:
     name: swaply-product-service
 
-  profiles:
-    active: dev
+  flyway:
+    enabled: false
+    table: flyway_schema_history_product
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+
 
   config:
     import: "optional:configserver:http://localhost:8881"
@@ -16,3 +21,4 @@ spring:
 logging:
   level:
     com.example.sagaproduct.consumer: debug
+
