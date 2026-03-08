@@ -24,15 +24,21 @@ public class Wish {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long wishId;
 
-    // 🔥 Member 연관관계 제거
     @Column(nullable = false)
     private Long memberId;
 
-    // 🔥 Product는 같은 서비스면 연관관계 가능
     @Column(nullable = false)
     private Long productId;
 
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    // ✅ 정적 팩토리 메서드 추가
+    public static Wish create(Long memberId, Long productId) {
+        Wish wish = new Wish();
+        wish.memberId = memberId;
+        wish.productId = productId;
+        return wish;
+    }
 }
