@@ -22,7 +22,6 @@ public class ProductCreateRequest {
 
     private Integer brandId;
 
-    @NotNull
     private Long sellerId; // 프론트에서 안 보내면 컨트롤러에서 강제 주입 예정
 
     private String tradeType; // 👈 프론트의 'BOTH', 'DELIVERY' 등을 받기 위해 추가

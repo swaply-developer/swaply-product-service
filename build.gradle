@@ -58,6 +58,8 @@ dependencies {
     // mysql
     runtimeOnly 'com.mysql:mysql-connector-j'
 
+    // security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
     //Flyway
     implementation 'org.flywaydb:flyway-core' //Flyway
     implementation 'org.flywaydb:flyway-mysql' //Flyway MySQL N

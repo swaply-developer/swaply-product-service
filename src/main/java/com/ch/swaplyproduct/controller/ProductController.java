@@ -79,37 +79,6 @@ public class ProductController {
     }
 
     // =====================================================
-    // 4️⃣ 좋아요 추가
-    //   - userId를 X-Member-Id 헤더에서 읽도록 변경
-    // =====================================================
-    @PostMapping("/{productId}/wish")
-    public ResponseEntity<Void> addWish(
-            @PathVariable Long productId,
-            @RequestHeader(value = "X-Member-Id", required = false) String memberIdHeader,
-            @RequestParam(required = false) Long userId // fallback (헤더 없을 때)
-    ) {
-        Long uid = parseMemberId(memberIdHeader, userId);
-        if (uid == null) return ResponseEntity.badRequest().build();
-        productService.addWish(productId, uid);
-        return ResponseEntity.ok().build();
-    }
-
-    // =====================================================
-    // 5️⃣ 좋아요 취소
-    // =====================================================
-    @DeleteMapping("/{productId}/wish")
-    public ResponseEntity<Void> removeWish(
-            @PathVariable Long productId,
-            @RequestHeader(value = "X-Member-Id", required = false) String memberIdHeader,
-            @RequestParam(required = false) Long userId
-    ) {
-        Long uid = parseMemberId(memberIdHeader, userId);
-        if (uid == null) return ResponseEntity.badRequest().build();
-        productService.removeWish(productId, uid);
-        return ResponseEntity.ok().build();
-    }
-
-    // =====================================================
     // 6️⃣ 상품 상태 변경
     // =====================================================
     @PatchMapping("/{productId}/status")
