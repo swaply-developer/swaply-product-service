@@ -5,11 +5,13 @@ import com.ch.swaplyproduct.service.WishService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.Map;
 
 @Slf4j
@@ -22,6 +24,7 @@ public class WishController {
     // =====================================================
     // GET /api/wishes  — 내 찜 목록 조회
     //   X-Member-Id 헤더: 게이트웨이가 JWT에서 주입
+    //   비로그인: 빈 목록 반환 (게이트웨이에서 이미 통과시킴)
     // =====================================================
     @GetMapping("/api/wishes")
     public ResponseEntity<Page<WishResponse>> getWishList(
@@ -30,8 +33,15 @@ public class WishController {
             @RequestParam(defaultValue = "20") int size
     ) {
         Long memberId = parseMemberId(memberIdHeader);
+
+        // ✅ 비로그인 시 빈 목록 반환 (401 대신) — 프론트에서 비로그인도 홈 접근 가능
         if (memberId == null) {
-            return ResponseEntity.status(401).build();
+            Page<WishResponse> empty = new PageImpl<>(
+                    Collections.emptyList(),
+                    PageRequest.of(page, size),
+                    0
+            );
+            return ResponseEntity.ok(empty);
         }
 
         Page<WishResponse> result = wishService.getWishList(
@@ -73,7 +83,6 @@ public class WishController {
 
     // =====================================================
     // GET /api/products/{productId}/wish/check  — 찜 여부 확인
-    //   상세페이지 진입 시 단건 확인용 (목록 API 대신 사용)
     // =====================================================
     @GetMapping("/api/products/{productId}/wish/check")
     public ResponseEntity<Map<String, Boolean>> checkWish(
