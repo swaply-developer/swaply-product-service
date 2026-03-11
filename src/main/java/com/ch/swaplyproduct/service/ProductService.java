@@ -3,11 +3,13 @@ package com.ch.swaplyproduct.service;
 
 import com.ch.swaplyproduct.product.dto.ProductCreateRequest;
 import com.ch.swaplyproduct.product.dto.ProductResponse;
+import com.ch.swaplyproduct.product.dto.ProductSummaryDto;
 import com.ch.swaplyproduct.product.entity.*;
 import com.ch.swaplyproduct.product.repository.BrandRepository;
 import com.ch.swaplyproduct.product.repository.CategoryRepository;
 import com.ch.swaplyproduct.product.repository.ProductImageRepository;
 import com.ch.swaplyproduct.product.repository.ProductRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,7 +17,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
+import java.util.stream.Collectors;
 import java.util.List;
 
 @Service
@@ -211,5 +213,41 @@ public class ProductService {
 
             return ProductResponse.fromWithImages(product, imgs);
         });
+    }
+
+    /**---------------------------------------------------------------------------------------------
+     * 상품 상태 변경 로직
+     ---------------------------------------------------------------------------------------------*/
+    @Transactional
+    public void updateProductStatus(Long productId, String currentStatus, String newStatus) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품 없음: " + productId));
+
+        product.updateStatus(ProductStatus.valueOf(newStatus));
+    }
+
+    /**
+     * 여러 ID로 상품 리스트 조회 후 DTO 변환
+     */
+    public List<ProductSummaryDto> getProductSummaries(List<Long> productIds) {
+        return productRepository.findAllById(productIds).stream()
+                .map(p -> {
+                    // ✅ 썸네일 이미지 찾기 로직
+                    String thumb = p.getImages().stream()
+                            .filter(ProductImage::isThumbnail)
+                            .map(ProductImage::getImageUrl)
+                            .findFirst()
+                            .orElse(""); // 썸네일 없으면 빈 문자열
+
+                    return ProductSummaryDto.builder()
+                            .productId(p.getProductId())
+                            .sellerId(p.getSellerId())
+                            .title(p.getTitle())
+                            .price(p.getPrice().longValue())
+                            .thumbnailUrl(thumb) // ✅ 찾은 썸네일 주소 주입
+                            .status(p.getStatus().name())
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 }

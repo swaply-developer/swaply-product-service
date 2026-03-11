@@ -32,4 +32,5 @@ public class ProductImage {
         pi.sortOrder = sortOrder;
         return pi;
     }
+
 }

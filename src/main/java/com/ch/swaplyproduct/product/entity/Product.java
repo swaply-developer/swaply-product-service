@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -74,6 +77,13 @@ public class Product {
         product.viewCount = 0L;
         product.wishCount = 0L;
         return product;
+    }
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+    private List<ProductImage> images = new ArrayList<>();
+
+    public void updateStatus(ProductStatus newStatus) {
+        this.status = newStatus;
     }
 }
 

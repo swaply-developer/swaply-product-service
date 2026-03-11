@@ -3,6 +3,7 @@ package com.ch.swaplyproduct.controller;
 
 import com.ch.swaplyproduct.product.dto.ProductCreateRequest;
 import com.ch.swaplyproduct.product.dto.ProductResponse;
+import com.ch.swaplyproduct.product.dto.ProductSummaryDto;
 import com.ch.swaplyproduct.product.entity.ProductStatus;
 import com.ch.swaplyproduct.service.ProductService;
 
@@ -100,4 +101,35 @@ public class ProductController {
         }
         return fallback;
     }
+
+
+    /**-----------------------------------------------------------------------------------------------------
+     * 상품 상태 변경 요청
+     -----------------------------------------------------------------------------------------------------*/
+    @PatchMapping("/{productId}/status")
+    public ResponseEntity<Void> changeProductStatus(
+            @PathVariable Long productId,
+            @RequestParam String currentStatus,
+            @RequestParam String newStatus
+    ) {
+        productService.updateProductStatus(productId, currentStatus, newStatus);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * [두 번째 요청] 여러 상품 정보 일괄 조회 (Bulk)
+     * POST /api/products/summary/bulk
+     */
+    @PostMapping("/summary/bulk")
+    public ResponseEntity<List<ProductSummaryDto>> getProductSummaries(
+            @RequestBody List<Long> productIds
+    ) {
+        List<ProductSummaryDto> summaries = productService.getProductSummaries(productIds);
+        return ResponseEntity.ok(summaries);
+    }
+    /**-----------------------------------------------------------------------------------------------------
+     * 상품 상태 변경 요청 종료
+     -----------------------------------------------------------------------------------------------------*/
+
+
 }
