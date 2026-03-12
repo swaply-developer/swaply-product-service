@@ -1,11 +1,14 @@
 package com.ch.swaplyproduct.product.dto;
 
 import com.ch.swaplyproduct.product.entity.Product;
+import com.ch.swaplyproduct.product.entity.Category; // Category 엔티티 임포트 확인
 import lombok.Builder;
 import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @Builder
@@ -16,22 +19,34 @@ public class ProductResponse {
     private String description;
     private BigDecimal price;
     private Integer categoryId;
+    private Integer rootCategoryId; // ✅ 추가
     private Integer brandId;
     private Long sellerId;
     private String status;
     private Long viewCount;
     private Long wishCount;
     private LocalDateTime createdAt;
-    private String thumbnailUrl;          // ✅ 목록용 썸네일 URL (게이트웨이 경유 경로)
-    private java.util.List<ImageDto> images; // ✅ 상세용 전체 이미지
+    private String thumbnailUrl;
+    private List<ImageDto> images;
 
-    @lombok.Getter
-    @lombok.Builder
+    @Getter
+    @Builder
     public static class ImageDto {
         private Long imageId;
         private String imageUrl;
         private boolean isThumbnail;
         private int sortOrder;
+    }
+
+    // ✅ 최상위 카테고리 ID를 찾는 내부 로직 (재귀/반복)
+    private static Integer findRootCategoryId(Category category) {
+        if (category == null) return null;
+        Category current = category;
+        // 부모가 있는 동안 계속 위로 올라가서 최상위 부모(root)를 찾음
+        while (current.getParent() != null) {
+            current = current.getParent();
+        }
+        return current.getCategoryId();
     }
 
     public static ProductResponse from(Product product) {
@@ -41,6 +56,7 @@ public class ProductResponse {
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .categoryId(product.getCategory() != null ? product.getCategory().getCategoryId() : null)
+                .rootCategoryId(findRootCategoryId(product.getCategory())) // ✅ 추가
                 .brandId(product.getBrand() != null ? product.getBrand().getBrandId() : null)
                 .sellerId(product.getSellerId())
                 .status(product.getStatus().name())
@@ -50,16 +66,15 @@ public class ProductResponse {
                 .build();
     }
 
-    // ✅ 상세 조회: 이미지 목록 포함
-    public static ProductResponse fromWithImages(Product product, java.util.List<com.ch.swaplyproduct.product.entity.ProductImage> imageList) {
-        java.util.List<ImageDto> dtos = imageList.stream()
+    public static ProductResponse fromWithImages(Product product, List<com.ch.swaplyproduct.product.entity.ProductImage> imageList) {
+        List<ImageDto> dtos = imageList.stream()
                 .map(img -> ImageDto.builder()
                         .imageId(img.getImageId())
                         .imageUrl(img.getImageUrl())
                         .isThumbnail(img.isThumbnail())
                         .sortOrder(img.getSortOrder())
                         .build())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
 
         String thumbnail = imageList.stream()
                 .filter(com.ch.swaplyproduct.product.entity.ProductImage::isThumbnail)
@@ -73,6 +88,7 @@ public class ProductResponse {
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .categoryId(product.getCategory() != null ? product.getCategory().getCategoryId() : null)
+                .rootCategoryId(findRootCategoryId(product.getCategory())) // ✅ 추가
                 .brandId(product.getBrand() != null ? product.getBrand().getBrandId() : null)
                 .sellerId(product.getSellerId())
                 .status(product.getStatus().name())

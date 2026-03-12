@@ -96,7 +96,6 @@ public class ProductController {
         log.info("[상태 변경 완료] 상품ID: {} 상태가 {}로 변경되었습니다.", productId, newStatus);
         return ResponseEntity.ok().build();
     }
-
     // =====================================================
     // 헬퍼: 헤더 우선, 없으면 파라미터 fallback
     // =====================================================
@@ -106,7 +105,6 @@ public class ProductController {
         }
         return fallback;
     }
-
 
     /**
      * [두 번째 요청] 여러 상품 정보 일괄 조회 (Bulk)
