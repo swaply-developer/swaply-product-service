@@ -82,13 +82,18 @@ public class ProductController {
     // =====================================================
     // 6️⃣ 상품 상태 변경
     // =====================================================
-    @PatchMapping("/{productId}/status")
+    @PostMapping("/internal/{productId}/status")
     public ResponseEntity<Void> changeStatus(
             @PathVariable Long productId,
             @RequestParam ProductStatus currentStatus,
             @RequestParam ProductStatus newStatus
     ) {
+        // [로그 추가] 상태 변경 요청 정보 확인
+        log.info("[상태 변경 요청] 상품ID: {}, 현재상태: {}, 변경예정: {}", productId, currentStatus, newStatus);
+
         productService.changeStatus(productId, currentStatus, newStatus);
+
+        log.info("[상태 변경 완료] 상품ID: {} 상태가 {}로 변경되었습니다.", productId, newStatus);
         return ResponseEntity.ok().build();
     }
 
@@ -103,19 +108,6 @@ public class ProductController {
     }
 
 
-    /**-----------------------------------------------------------------------------------------------------
-     * 상품 상태 변경 요청
-     -----------------------------------------------------------------------------------------------------*/
-    @PatchMapping("/{productId}/status")
-    public ResponseEntity<Void> changeProductStatus(
-            @PathVariable Long productId,
-            @RequestParam String currentStatus,
-            @RequestParam String newStatus
-    ) {
-        productService.updateProductStatus(productId, currentStatus, newStatus);
-        return ResponseEntity.ok().build();
-    }
-
     /**
      * [두 번째 요청] 여러 상품 정보 일괄 조회 (Bulk)
      * POST /api/products/summary/bulk
@@ -124,7 +116,19 @@ public class ProductController {
     public ResponseEntity<List<ProductSummaryDto>> getProductSummaries(
             @RequestBody List<Long> productIds
     ) {
+        // [로그 추가] 벌크 조회 요청 시 받은 ID 리스트 확인
+        log.info("[Bulk 조회 요청] 요청 상품 개수: {}, 상품ID 목록: {}",
+                (productIds != null ? productIds.size() : 0), productIds);
+
+        if (productIds == null || productIds.isEmpty()) {
+            log.warn("[Bulk 조회] 요청된 상품 ID 목록이 비어있습니다.");
+        }
+
         List<ProductSummaryDto> summaries = productService.getProductSummaries(productIds);
+
+        // [로그 추가] 조회 결과 개수 확인 (데이터 매칭 실패 여부 파악용)
+        log.info("[Bulk 조회 완료] 조회된 요약 정보 개수: {}", (summaries != null ? summaries.size() : 0));
+
         return ResponseEntity.ok(summaries);
     }
     /**-----------------------------------------------------------------------------------------------------
