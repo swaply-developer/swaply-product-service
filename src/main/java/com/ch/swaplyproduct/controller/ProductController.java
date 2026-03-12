@@ -102,20 +102,6 @@ public class ProductController {
         return fallback;
     }
 
-
-    /**-----------------------------------------------------------------------------------------------------
-     * 상품 상태 변경 요청
-     -----------------------------------------------------------------------------------------------------*/
-    @PatchMapping("/{productId}/status")
-    public ResponseEntity<Void> changeProductStatus(
-            @PathVariable Long productId,
-            @RequestParam String currentStatus,
-            @RequestParam String newStatus
-    ) {
-        productService.updateProductStatus(productId, currentStatus, newStatus);
-        return ResponseEntity.ok().build();
-    }
-
     /**
      * [두 번째 요청] 여러 상품 정보 일괄 조회 (Bulk)
      * POST /api/products/summary/bulk
