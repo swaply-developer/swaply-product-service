@@ -1,5 +1,8 @@
 package com.ch.swaplyproduct.service;
 
+import com.ch.swaplyproduct.client.MemberInternalClient;
+import com.ch.swaplyproduct.message.WishAddedMessage;
+import com.ch.swaplyproduct.message.WishNotificationPublisher;
 import com.ch.swaplyproduct.product.dto.WishResponse;
 import com.ch.swaplyproduct.product.entity.Product;
 import com.ch.swaplyproduct.product.entity.ProductImage;
@@ -29,6 +32,10 @@ public class WishService {
     private final ProductImageRepository productImageRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
+    // 신규 의존성
+    private final WishNotificationPublisher wishNotificationPublisher;
+    private final MemberInternalClient memberInternalClient;
+
     // =====================================================
     // 찜 추가
     // =====================================================
@@ -51,8 +58,10 @@ public class WishService {
         redisTemplate.opsForValue().increment("product:wish:count:" + productId);
         redisTemplate.opsForSet().add("product:wish:users:" + productId, memberId);
 
-        // Product wishCount 동기화 (선택적 - 스케줄러로 해도 됨)
         log.info("찜 추가 완료: memberId={}, productId={}", memberId, productId);
+
+        // ── 찜 추가 알림 이벤트 발행 ─────────────────────────────────────────────
+        publishWishAddedNotification(product, memberId);
     }
 
     // =====================================================
@@ -75,6 +84,7 @@ public class WishService {
         redisTemplate.opsForSet().remove("product:wish:users:" + productId, memberId);
 
         log.info("찜 취소 완료: memberId={}, productId={}", memberId, productId);
+        // 찜 취소 시에는 알림 발행하지 않음
     }
 
     // =====================================================
@@ -107,5 +117,40 @@ public class WishService {
     @Transactional(readOnly = true)
     public boolean isWished(Long productId, Long memberId) {
         return wishRepository.findByMemberIdAndProductId(memberId, productId).isPresent();
+    }
+
+    // ── private: 찜 추가 알림 발행 ──────────────────────────────────────────────
+
+    /**
+     * 찜 추가 이벤트 메시지를 조립해 RabbitMQ 로 발행한다.
+     * 트랜잭션 커밋 후에도 실행되도록 예외는 삼켜 메인 흐름을 보호한다.
+     */
+    private void publishWishAddedNotification(Product product, Long wishMemberId) {
+        try {
+            // 썸네일 조회
+            String thumbnailUrl = productImageRepository
+                    .findByProductAndIsThumbnailTrue(product)
+                    .map(ProductImage::getImageUrl)
+                    .orElse("");
+
+            // 찜한 사람의 닉네임 조회 (member-service 내부 API)
+            String wishMemberNickname = memberInternalClient.getNickname(wishMemberId);
+
+            WishAddedMessage message = new WishAddedMessage(
+                    product.getProductId(),
+                    product.getTitle(),
+                    thumbnailUrl,
+                    wishMemberId,
+                    wishMemberNickname,
+                    product.getSellerId()
+            );
+
+            wishNotificationPublisher.publishWishAdded(message);
+
+        } catch (Exception e) {
+            // 알림 발행 실패가 찜 추가 자체를 롤백해서는 안 된다.
+            log.error("[WishService] 찜 추가 알림 발행 실패: productId={}, error={}",
+                    product.getProductId(), e.getMessage(), e);
+        }
     }
 }
