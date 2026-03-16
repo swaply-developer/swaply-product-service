@@ -1,8 +1,8 @@
 package com.ch.swaplyproduct.product.entity;
 
-
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -12,7 +12,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// 파일: src/main/java/com/ch/swaplyproduct/product/entity/Product.java
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -28,7 +27,7 @@ public class Product {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id")
-    private Brand brand; // nullable 허용
+    private Brand brand;
 
     @Column(nullable = false)
     private Long sellerId;
@@ -55,27 +54,23 @@ public class Product {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    // Product.java 내 추가 및 수정
-
-    // Product.java 필드 추가
     @Column(nullable = false)
     private String tradeType;
 
-    // 정적 생성 메서드 업데이트
     public static Product create(Long sellerId, Category category, Brand brand,
                                  String title, String description, BigDecimal price,
-                                 String tradeType) { // 👈 파라미터 추가
+                                 String tradeType) {
         Product product = new Product();
-        product.sellerId = sellerId;
-        product.category = category;
-        product.brand = brand;
-        product.title = title;
+        product.sellerId    = sellerId;
+        product.category    = category;
+        product.brand       = brand;
+        product.title       = title;
         product.description = description;
-        product.price = price;
-        product.tradeType = tradeType; // 👈 저장
-        product.status = ProductStatus.SALE;
-        product.viewCount = 0L;
-        product.wishCount = 0L;
+        product.price       = price;
+        product.tradeType   = tradeType;
+        product.status      = ProductStatus.SALE;
+        product.viewCount   = 0L;
+        product.wishCount   = 0L;
         return product;
     }
 
@@ -85,5 +80,13 @@ public class Product {
     public void updateStatus(ProductStatus newStatus) {
         this.status = newStatus;
     }
-}
 
+    /**
+     * 가격 변경 비즈니스 메서드.
+     * ProductService.updatePrice() 에서 호출되며,
+     * 변경 전 가격은 서비스 레이어에서 별도로 캡처해 알림 메시지에 담는다.
+     */
+    public void updatePrice(BigDecimal newPrice) {
+        this.price = newPrice;
+    }
+}
