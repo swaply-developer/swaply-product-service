@@ -80,6 +80,7 @@ public class ProductController {
         return ResponseEntity.ok().build();
     }
 
+
     // =====================================================
     // 5️⃣ 상품 상태 변경 (내부 서비스 간 통신용)
     //   payment-service TradeExternalClient 가 호출
