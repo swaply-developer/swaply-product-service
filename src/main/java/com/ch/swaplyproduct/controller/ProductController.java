@@ -80,22 +80,11 @@ public class ProductController {
         return ResponseEntity.ok().build();
     }
 
+
     // =====================================================
     // 5️⃣ 상품 상태 변경 (내부 서비스 간 통신용)
     //   payment-service TradeExternalClient 가 호출
     // =====================================================
-    // 프론트엔드 직접 호출용 PATCH 엔드포인트
-    @PatchMapping("/{productId}/status")
-    public ResponseEntity<Void> changeStatusPatch(
-            @PathVariable Long productId,
-            @RequestParam ProductStatus currentStatus,
-            @RequestParam ProductStatus newStatus
-    ) {
-        log.info("[상태 변경 PATCH] 상품ID: {}, {} → {}", productId, currentStatus, newStatus);
-        productService.changeStatus(productId, currentStatus, newStatus);
-        return ResponseEntity.ok().build();
-    }
-
     @PostMapping("/internal/{productId}/status")
     public ResponseEntity<Void> changeStatus(
             @PathVariable Long productId,
