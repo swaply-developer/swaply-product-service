@@ -1,5 +1,6 @@
 package com.ch.swaplyproduct.controller;
 
+import com.ch.swaplyproduct.common.exception.CannotWishOwnProductException;
 import com.ch.swaplyproduct.product.dto.WishResponse;
 import com.ch.swaplyproduct.service.WishService;
 import lombok.RequiredArgsConstructor;
@@ -55,16 +56,19 @@ public class WishController {
     // POST /api/products/{productId}/wish  — 찜 추가
     // =====================================================
     @PostMapping("/api/products/{productId}/wish")
-    public ResponseEntity<Void> addWish(
+    public ResponseEntity<?> addWish(
             @PathVariable Long productId,
             @RequestHeader(value = "X-Member-Id", required = false) String memberIdHeader
-    ) {
-        Long memberId = parseMemberId(memberIdHeader);
-        if (memberId == null) return ResponseEntity.status(401).build();
+        ) {
+            Long memberId = parseMemberId(memberIdHeader);
+            if (memberId == null) {
+                return ResponseEntity.status(401)
+                        .body(Map.of("message", "로그인이 필요한 서비스 입니다."));
+            }
 
-        wishService.addWish(productId, memberId);
-        return ResponseEntity.ok().build();
-    }
+            wishService.addWish(productId, memberId);
+            return ResponseEntity.ok().build();
+        }
 
     // =====================================================
     // DELETE /api/products/{productId}/wish  — 찜 취소

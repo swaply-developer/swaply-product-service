@@ -83,6 +83,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             Pageable pageable
     );
 
+    // ── 신규: 관리자 전체 목록 (최신순) ────────────────────────────────────
+    List<Product> findAllByOrderByCreatedAtDesc();
+
 
 }
 

@@ -36,6 +36,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/products/**").permitAll()  // 인증은 게이트웨이에서
                         .requestMatchers("/api/wishes/**").permitAll()    // ✅ 찜 목록
                         .requestMatchers("/api/brands/**").permitAll()
+                        .requestMatchers("/api/admin/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )
