@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // ✅ 판매중 상품 목록
@@ -65,8 +67,21 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     int bulkIncreaseWishCount(@Param("productId") Long productId,
                               @Param("count") Long count);
 
-
-
+    /*-------------------------------------------------------------------
+     *   연관 검색 엔진
+     * -------------------------------------------------------------------*/
+    @Query("""
+    select p.title
+    from Product p
+    where p.status = :status
+      and p.title like concat(:keyword, '%')
+    order by p.createdAt desc
+""")
+    List<String> findTitlesForSuggestion(
+            @Param("keyword") String keyword,
+            @Param("status") ProductStatus status,
+            Pageable pageable
+    );
 
 
 }

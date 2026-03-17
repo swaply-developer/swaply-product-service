@@ -141,7 +141,7 @@ public class ProductService {
     }
 
     /* =====================================================
-       6️⃣ 상품 목록 조회 (페이징 + 필터링)
+       6️⃣ 상품 목록 조회 (수정된 버전)
        ===================================================== */
     @Transactional(readOnly = true)
     public Page<ProductResponse> getList(
@@ -149,15 +149,25 @@ public class ProductService {
             ProductStatus status, Pageable pageable) {
 
         Page<Product> products;
-        if (sellerId != null) {
-            products = productRepository.findBySellerIdOrderByCreatedAtDesc(sellerId, pageable);
-        } else if (categoryId != null && status != null) {
-            products = productRepository.findByCategoryIdAndStatus(categoryId, status, pageable);
-        } else if (keyword != null && status != null) {
+
+        // 1. 키워드가 있으면 (null이 아니고 비어있지 않으면) 무조건 검색 우선
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            log.info("검색어로 조회 수행: {}", keyword);
             products = productRepository.findByTitleContainingAndStatus(keyword, status, pageable);
-        } else if (status != null) {
+        }
+        // 2. 판매자 아이디가 있으면
+        else if (sellerId != null) {
+            products = productRepository.findBySellerIdOrderByCreatedAtDesc(sellerId, pageable);
+        }
+        // 3. 카테고리가 있으면
+        else if (categoryId != null) {
+            products = productRepository.findByCategoryIdAndStatus(categoryId, status, pageable);
+        }
+        // 4. 그 외에는 상태별 전체 조회
+        else if (status != null) {
             products = productRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
-        } else {
+        }
+        else {
             products = productRepository.findAll(pageable);
         }
 
@@ -168,6 +178,23 @@ public class ProductService {
         });
     }
 
+    @Transactional(readOnly = true)
+    public List<String> getSuggestions(String keyword) {
+        if (keyword == null) {
+            return List.of();
+        }
+
+        String normalized = keyword.trim();
+        if (normalized.length() < 2) {
+            return List.of();
+        }
+
+        return productRepository.findTitlesForSuggestion(
+                normalized,
+                ProductStatus.SALE,
+                org.springframework.data.domain.PageRequest.of(0, 3)
+        ).stream().distinct().limit(3).toList();
+    }
     /* =====================================================
        7️⃣ 상품 상태 변경 (문자열 버전)
        ===================================================== */
