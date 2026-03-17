@@ -58,10 +58,13 @@ public class ProductController {
             @RequestParam(required = false) Long sellerId,
             @RequestParam(required = false) Integer categoryId,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) ProductStatus status,
+            @RequestParam(required = false) ProductStatus status, // defaultValue 삭제
             Pageable pageable
     ) {
-        return productService.getList(sellerId, categoryId, keyword, status, pageable);
+        // 만약 status가 null로 들어오면 기본값으로 SELLING을 할당
+        ProductStatus finalStatus = (status == null) ? ProductStatus.SALE : status;
+
+        return productService.getList(sellerId, categoryId, keyword, finalStatus, pageable);
     }
 
     // =====================================================
@@ -132,6 +135,22 @@ public class ProductController {
 
         productService.updatePrice(productId, memberId, request.getPrice());
         return ResponseEntity.ok().build();
+    }
+
+    // =====================================================
+// 7️⃣ 인기 키워드 조회 (추가)
+//   GET /api/products/popular-keywords
+// =====================================================
+    @GetMapping("/popular-keywords")
+    public ResponseEntity<List<String>> getPopularKeywords() {
+        log.warn("★★★★ 인기 키워드 API 진입 성공 ★★★★");
+        List<String> keywords = List.of("나이키", "아이폰", "에어팟", "아디다스", "노트북");
+        return ResponseEntity.ok(keywords);
+    }
+
+    @GetMapping("/suggestions")
+    public ResponseEntity<List<String>> getSuggestions(@RequestParam String keyword) {
+        return ResponseEntity.ok(productService.getSuggestions(keyword));
     }
 
     // =====================================================
