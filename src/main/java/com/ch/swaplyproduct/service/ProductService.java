@@ -24,6 +24,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.ch.swaplyproduct.product.dto.CategoryResponse;
+import com.ch.swaplyproduct.product.entity.Category;
+import com.ch.swaplyproduct.product.repository.CategoryRepository;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -39,25 +43,35 @@ public class ProductService {
     private final WishRepository wishRepository;
     private final WishNotificationPublisher wishNotificationPublisher;
 
-    /* =====================================================
+        /* =====================================================
        1️⃣ 상품 등록 (카테고리/브랜드 연동)
        ===================================================== */
     @Transactional
-    public ProductResponse createProduct(ProductCreateRequest request, List<MultipartFile> images, Long memberId) {
+    public ProductResponse createProduct(ProductCreateRequest request,
+                                         List<MultipartFile> images,
+                                         Long memberId) {
+
+        // 1. 카테고리 조회
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
 
-        Brand brand = (request.getBrandId() != null)
-                ? brandRepository.findById(request.getBrandId()).orElse(null)
-                : null;
+        // 2. 브랜드 결정
+        //    우선순위: brandId > brandName(기존 조회 or 신규 생성) > null
+        Brand brand = resolveBrand(request, category);
 
+        // 3. 상품 저장
         Product product = Product.create(
-                memberId, category, brand,
-                request.getTitle(), request.getDescription(),
-                request.getPrice(), request.getTradeType()
+                memberId,
+                category,
+                brand,
+                request.getTitle(),
+                request.getDescription(),
+                request.getPrice(),
+                request.getTradeType()
         );
         Product savedProduct = productRepository.save(product);
 
+        // 4. 이미지 저장
         if (images != null && !images.isEmpty()) {
             String uploadDir = "uploads/";
             java.io.File dir = new java.io.File(uploadDir);
@@ -69,15 +83,16 @@ public class ProductService {
             for (int i = 0; i < images.size(); i++) {
                 MultipartFile file = images.get(i);
                 String filename = savedProduct.getProductId() + "_" + i + ".jpg";
-                java.io.File dest = new java.io.File(dir.getAbsolutePath() + java.io.File.separator + filename);
+                java.io.File dest = new java.io.File(
+                        dir.getAbsolutePath() + java.io.File.separator + filename);
                 try {
                     file.transferTo(dest);
                     System.out.println("파일 저장 성공: " + dest.getAbsolutePath());
-                    ProductImage pi = ProductImage.create(savedProduct, "/uploads/" + filename, (i == 0), i);
+                    ProductImage pi = ProductImage.create(
+                            savedProduct, "/uploads/" + filename, (i == 0), i);
                     productImageRepository.save(pi);
                 } catch (Exception e) {
                     System.err.println("파일 저장 실패: " + e.getMessage());
-                    e.printStackTrace();
                     throw new RuntimeException("이미지 저장 중 오류 발생", e);
                 }
             }
@@ -86,6 +101,37 @@ public class ProductService {
 
         return ProductResponse.from(savedProduct);
     }
+
+    /**
+     * brandId → brandName → null 순서로 브랜드 결정.
+     * brandName이 주어지면 같은 카테고리에 동일 이름의 브랜드를 찾거나 새로 생성합니다.
+     */
+    private Brand resolveBrand(ProductCreateRequest request, Category category) {
+        // brandId가 명시된 경우
+        if (request.getBrandId() != null) {
+            return brandRepository.findById(request.getBrandId())
+                    .orElse(null); // 없으면 null (brand_id = NULL)
+        }
+
+        // brandName이 주어진 경우
+        String brandName = request.getBrandName();
+        if (brandName != null && !brandName.isBlank()) {
+            // 같은 카테고리에 동일 이름 브랜드 존재 여부 확인
+            return brandRepository
+                    .findByCategoryCategoryIdAndName(category.getCategoryId(), brandName.trim())
+                    .orElseGet(() -> {
+                        // 없으면 신규 생성
+                        Brand newBrand = Brand.create(brandName.trim(), null, null, category);
+                        Brand saved = brandRepository.save(newBrand);
+                        log.info("[Brand] 신규 브랜드 생성: name={}, categoryId={}",
+                                brandName, category.getCategoryId());
+                        return saved;
+                    });
+        }
+
+        return null; // 브랜드 없음
+    }
+
 
     /* =====================================================
        2️⃣ 상품 상세 조회
@@ -145,29 +191,29 @@ public class ProductService {
        ===================================================== */
     @Transactional(readOnly = true)
     public Page<ProductResponse> getList(
-            Long sellerId, Integer categoryId, String keyword,
-            ProductStatus status, Pageable pageable) {
-
+            Long sellerId,
+            Integer categoryId,
+            Integer brandId,
+            String keyword,
+            ProductStatus status,
+            Pageable pageable
+    ) {
         Page<Product> products;
 
-        // 1. 키워드가 있으면 (null이 아니고 비어있지 않으면) 무조건 검색 우선
         if (keyword != null && !keyword.trim().isEmpty()) {
             log.info("검색어로 조회 수행: {}", keyword);
             products = productRepository.findByTitleContainingAndStatus(keyword, status, pageable);
-        }
-        // 2. 판매자 아이디가 있으면
-        else if (sellerId != null) {
+        } else if (sellerId != null) {
             products = productRepository.findBySellerIdOrderByCreatedAtDesc(sellerId, pageable);
-        }
-        // 3. 카테고리가 있으면
-        else if (categoryId != null) {
+        } else if (brandId != null && categoryId != null) {
+            products = productRepository.findByBrandIdAndCategoryIdAndStatus(brandId, categoryId, status, pageable);
+        } else if (brandId != null) {
+            products = productRepository.findByBrandIdAndStatus(brandId, status, pageable);
+        } else if (categoryId != null) {
             products = productRepository.findByCategoryIdAndStatus(categoryId, status, pageable);
-        }
-        // 4. 그 외에는 상태별 전체 조회
-        else if (status != null) {
+        } else if (status != null) {
             products = productRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
-        }
-        else {
+        } else {
             products = productRepository.findAll(pageable);
         }
 
@@ -177,6 +223,7 @@ public class ProductService {
             return ProductResponse.fromWithImages(product, imgs);
         });
     }
+
 
     @Transactional(readOnly = true)
     public List<String> getSuggestions(String keyword) {
@@ -304,5 +351,58 @@ public class ProductService {
             log.error("[updatePrice] 가격 변동 알림 발행 실패: productId={}, error={}",
                     productId, e.getMessage(), e);
         }
+    }
+
+        /* =====================================================
+           카테고리
+       ===================================================== */
+
+    /**
+     * 카테고리 트리 반환 — depth 1(대분류) + depth 2(중분류) 까지만.
+     * depth 3 소소분류(패딩, 점퍼 등)는 포함하지 않는다.
+     * 상품 등록 시 SubCat(depth 2)까지만 선택하므로,
+     * 그 이상의 depth 노드는 반환해봤자 어떤 상품과도 매칭되지 않는다.
+     */
+    public List<CategoryResponse> getCategoryTree() {
+        // depth 1 루트 노드 조회
+        List<Category> roots = categoryRepository.findByParentIsNullOrderByCategoryIdAsc();
+
+        return roots.stream()
+                .map(root -> {
+                    // depth 2 자식만 1단계 조회 (재귀 없음)
+                    List<CategoryResponse> subList = categoryRepository
+                            .findByParent_CategoryIdOrderByCategoryIdAsc(root.getCategoryId())
+                            .stream()
+                            .map(sub -> CategoryResponse.builder()
+                                    .categoryId(sub.getCategoryId())
+                                    .categoryName(sub.getName())
+                                    .parentId(root.getCategoryId())
+                                    .sub(List.of())   // depth 3 은 넣지 않음
+                                    .build())
+                            .toList();
+
+                    return CategoryResponse.builder()
+                            .categoryId(root.getCategoryId())
+                            .categoryName(root.getName())
+                            .parentId(null)
+                            .sub(subList)
+                            .build();
+                })
+                .toList();
+    }
+
+    private CategoryResponse toCategoryResponse(Category category) {
+        List<CategoryResponse> children = categoryRepository
+                .findByParent_CategoryIdOrderByCategoryIdAsc(category.getCategoryId())
+                .stream()
+                .map(this::toCategoryResponse)
+                .toList();
+
+        return CategoryResponse.builder()
+                .categoryId(category.getCategoryId())
+                .categoryName(category.getName())
+                .parentId(category.getParent() != null ? category.getParent().getCategoryId() : null)
+                .sub(children)
+                .build();
     }
 }

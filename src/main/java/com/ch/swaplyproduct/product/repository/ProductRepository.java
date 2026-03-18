@@ -11,31 +11,75 @@ import java.util.List;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    // ✅ 판매중 상품 목록
+    // 판매중 상품 목록
     Page<Product> findByStatusOrderByCreatedAtDesc(ProductStatus status, Pageable pageable);
 
-    // ✅ 특정 판매자 상품 목록
+    // 특정 판매자 상품 목록
     Page<Product> findBySellerIdOrderByCreatedAtDesc(Long sellerId, Pageable pageable);
 
-    // ✅ 카테고리별 상품 (메서드명 그대로 유지)
-    @Query("select p from Product p where p.category.categoryId = :categoryId and p.status = :status")
-    Page<Product> findByCategoryIdAndStatus(@Param("categoryId") Integer categoryId, @Param("status") ProductStatus status, Pageable pageable);
+    // 카테고리별 상품
+    @Query("""
+        select p
+        from Product p
+        where p.category.categoryId = :categoryId
+          and p.status = :status
+        order by p.createdAt desc
+    """)
+    Page<Product> findByCategoryIdAndStatus(
+            @Param("categoryId") Integer categoryId,
+            @Param("status") ProductStatus status,
+            Pageable pageable
+    );
 
-    // ✅ 제목 검색
+    // 브랜드별 상품
+    @Query("""
+        select p
+        from Product p
+        where p.brand.brandId = :brandId
+          and p.status = :status
+        order by p.createdAt desc
+    """)
+    Page<Product> findByBrandIdAndStatus(
+            @Param("brandId") Integer brandId,
+            @Param("status") ProductStatus status,
+            Pageable pageable
+    );
+
+    // 브랜드 + 카테고리별 상품
+    @Query("""
+        select p
+        from Product p
+        where p.brand.brandId = :brandId
+          and p.category.categoryId = :categoryId
+          and p.status = :status
+        order by p.createdAt desc
+    """)
+    Page<Product> findByBrandIdAndCategoryIdAndStatus(
+            @Param("brandId") Integer brandId,
+            @Param("categoryId") Integer categoryId,
+            @Param("status") ProductStatus status,
+            Pageable pageable
+    );
+
+    // 제목 검색
     Page<Product> findByTitleContainingAndStatus(String keyword, ProductStatus status, Pageable pageable);
 
-    // 🔥 조회수 증가 (동시성 안전)
+    // 조회수 증가
     @Modifying
-    @Query("update Product p set p.viewCount = p.viewCount + 1 where p.productId = :productId")
+    @Query("""
+        update Product p
+        set p.viewCount = p.viewCount + 1
+        where p.productId = :productId
+    """)
     int increaseViewCount(@Param("productId") Long productId);
 
-    // 🔥 상태 변경 (현재 상태 조건 포함)
+    // 상태 변경
     @Modifying
     @Query("""
         update Product p
         set p.status = :newStatus
         where p.productId = :productId
-        and p.status = :currentStatus
+          and p.status = :currentStatus
     """)
     int updateStatusIfMatch(
             @Param("productId") Long productId,
@@ -43,49 +87,44 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("newStatus") ProductStatus newStatus
     );
 
-    /*-------------------------------------------------------------------
-    *   View
-    * -------------------------------------------------------------------*/
+    // View
     @Modifying
     @Query("""
-    update Product p
-    set p.viewCount = p.viewCount + :count
-    where p.productId = :productId
-""")
-    int bulkIncreaseViewCount(@Param("productId") Long productId,
-                              @Param("count") Long count);
+        update Product p
+        set p.viewCount = p.viewCount + :count
+        where p.productId = :productId
+    """)
+    int bulkIncreaseViewCount(
+            @Param("productId") Long productId,
+            @Param("count") Long count
+    );
 
-    /*-------------------------------------------------------------------
-     *   Wish
-     * -------------------------------------------------------------------*/
+    // Wish
     @Modifying
     @Query("""
-    update Product p
-    set p.wishCount = p.wishCount + :count
-    where p.productId = :productId
-""")
-    int bulkIncreaseWishCount(@Param("productId") Long productId,
-                              @Param("count") Long count);
+        update Product p
+        set p.wishCount = p.wishCount + :count
+        where p.productId = :productId
+    """)
+    int bulkIncreaseWishCount(
+            @Param("productId") Long productId,
+            @Param("count") Long count
+    );
 
-    /*-------------------------------------------------------------------
-     *   연관 검색 엔진
-     * -------------------------------------------------------------------*/
+    // 연관 검색 엔진
     @Query("""
-    select p.title
-    from Product p
-    where p.status = :status
-      and p.title like concat(:keyword, '%')
-    order by p.createdAt desc
-""")
+        select p.title
+        from Product p
+        where p.status = :status
+          and p.title like concat(:keyword, '%')
+        order by p.createdAt desc
+    """)
     List<String> findTitlesForSuggestion(
             @Param("keyword") String keyword,
             @Param("status") ProductStatus status,
             Pageable pageable
     );
 
-    // ── 신규: 관리자 전체 목록 (최신순) ────────────────────────────────────
+    // 관리자 전체 목록
     List<Product> findAllByOrderByCreatedAtDesc();
-
-
 }
-

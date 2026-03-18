@@ -1,7 +1,7 @@
 package com.ch.swaplyproduct.product.dto;
 
+import com.ch.swaplyproduct.product.entity.Category;
 import com.ch.swaplyproduct.product.entity.Product;
-import com.ch.swaplyproduct.product.entity.Category; // Category 엔티티 임포트 확인
 import lombok.Builder;
 import lombok.Getter;
 
@@ -19,8 +19,9 @@ public class ProductResponse {
     private String description;
     private BigDecimal price;
     private Integer categoryId;
-    private Integer rootCategoryId; // ✅ 추가
+    private Integer rootCategoryId;
     private Integer brandId;
+    private String brandName;   // 추가
     private Long sellerId;
     private String status;
     private Long viewCount;
@@ -38,11 +39,10 @@ public class ProductResponse {
         private int sortOrder;
     }
 
-    // ✅ 최상위 카테고리 ID를 찾는 내부 로직 (재귀/반복)
     private static Integer findRootCategoryId(Category category) {
         if (category == null) return null;
+
         Category current = category;
-        // 부모가 있는 동안 계속 위로 올라가서 최상위 부모(root)를 찾음
         while (current.getParent() != null) {
             current = current.getParent();
         }
@@ -56,8 +56,9 @@ public class ProductResponse {
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .categoryId(product.getCategory() != null ? product.getCategory().getCategoryId() : null)
-                .rootCategoryId(findRootCategoryId(product.getCategory())) // ✅ 추가
+                .rootCategoryId(findRootCategoryId(product.getCategory()))
                 .brandId(product.getBrand() != null ? product.getBrand().getBrandId() : null)
+                .brandName(product.getBrand() != null ? product.getBrand().getName() : null)   // 추가
                 .sellerId(product.getSellerId())
                 .status(product.getStatus().name())
                 .viewCount(product.getViewCount())
@@ -88,8 +89,9 @@ public class ProductResponse {
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .categoryId(product.getCategory() != null ? product.getCategory().getCategoryId() : null)
-                .rootCategoryId(findRootCategoryId(product.getCategory())) // ✅ 추가
+                .rootCategoryId(findRootCategoryId(product.getCategory()))
                 .brandId(product.getBrand() != null ? product.getBrand().getBrandId() : null)
+                .brandName(product.getBrand() != null ? product.getBrand().getName() : null)   // 추가
                 .sellerId(product.getSellerId())
                 .status(product.getStatus().name())
                 .viewCount(product.getViewCount())

@@ -6,6 +6,7 @@ import com.ch.swaplyproduct.product.dto.ProductSummaryDto;
 import com.ch.swaplyproduct.product.dto.ProductUpdatePriceRequest;
 import com.ch.swaplyproduct.product.entity.ProductStatus;
 import com.ch.swaplyproduct.service.ProductService;
+import com.ch.swaplyproduct.product.dto.CategoryResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -57,14 +58,14 @@ public class ProductController {
     public Page<ProductResponse> listProducts(
             @RequestParam(required = false) Long sellerId,
             @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) Integer brandId,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) ProductStatus status, // defaultValue 삭제
+            @RequestParam(required = false) ProductStatus status,
             Pageable pageable
     ) {
-        // 만약 status가 null로 들어오면 기본값으로 SELLING을 할당
         ProductStatus finalStatus = (status == null) ? ProductStatus.SALE : status;
 
-        return productService.getList(sellerId, categoryId, keyword, finalStatus, pageable);
+        return productService.getList(sellerId, categoryId, brandId, keyword, finalStatus, pageable);
     }
 
     // =====================================================
@@ -151,6 +152,15 @@ public class ProductController {
     @GetMapping("/suggestions")
     public ResponseEntity<List<String>> getSuggestions(@RequestParam String keyword) {
         return ResponseEntity.ok(productService.getSuggestions(keyword));
+    }
+
+    // =====================================================
+    // 카테고리
+    // =====================================================
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<CategoryResponse>> getCategories() {
+        return ResponseEntity.ok(productService.getCategoryTree());
     }
 
     // =====================================================
