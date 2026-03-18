@@ -16,21 +16,25 @@ import java.time.LocalDateTime;
                 @UniqueConstraint(columnNames = {"member_id", "brand_id"})
         }
 )
-
 public class BrandFollow {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long followId;
 
-    // 🔥 Member 제거
-    @Column(nullable = false)
+    @Column(nullable = false, name = "member_id")
     private Long memberId;
 
-    // Brand는 같은 서비스라면 유지 가능
-    @Column(nullable = false)
+    @Column(nullable = false, name = "brand_id")
     private Integer brandId;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    public static BrandFollow create(Long memberId, Integer brandId) {
+        BrandFollow f = new BrandFollow();
+        f.memberId = memberId;
+        f.brandId  = brandId;
+        return f;
+    }
 }
