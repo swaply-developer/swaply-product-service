@@ -4,6 +4,7 @@ import com.ch.swaplyproduct.product.dto.ProductCreateRequest;
 import com.ch.swaplyproduct.product.dto.ProductResponse;
 import com.ch.swaplyproduct.product.dto.ProductSummaryDto;
 import com.ch.swaplyproduct.product.dto.ProductUpdatePriceRequest;
+import com.ch.swaplyproduct.product.dto.ProductUpdateRequest;
 import com.ch.swaplyproduct.product.entity.ProductStatus;
 import com.ch.swaplyproduct.service.ProductService;
 import com.ch.swaplyproduct.product.dto.CategoryResponse;
@@ -66,6 +67,36 @@ public class ProductController {
         ProductStatus finalStatus = (status == null) ? ProductStatus.SALE : status;
 
         return productService.getList(sellerId, categoryId, brandId, keyword, finalStatus, pageable);
+    }
+
+    // =====================================================
+    // 🆕 상품 수정  PUT /api/products/{productId}
+    // =====================================================
+    @PutMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProductResponse> updateProduct(
+            @PathVariable Long productId,
+            @ModelAttribute @Valid ProductUpdateRequest request,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestHeader(value = "X-Member-Id", required = false) String memberIdHeader
+    ) {
+        Long requesterId = parseMemberId(memberIdHeader, null);
+        log.info("[상품 수정] productId={}, requesterId={}", productId, requesterId);
+        ProductResponse response = productService.updateProduct(productId, request, images, requesterId);
+        return ResponseEntity.ok(response);
+    }
+
+    // =====================================================
+    // 🆕 판매 취소 = 상품 삭제  DELETE /api/products/{productId}
+    // =====================================================
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<Void> deleteProduct(
+            @PathVariable Long productId,
+            @RequestHeader(value = "X-Member-Id", required = false) String memberIdHeader
+    ) {
+        Long requesterId = parseMemberId(memberIdHeader, null);
+        log.info("[상품 삭제] productId={}, requesterId={}", productId, requesterId);
+        productService.deleteProduct(productId, requesterId);
+        return ResponseEntity.noContent().build();
     }
 
     // =====================================================
