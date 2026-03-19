@@ -10,39 +10,39 @@ import org.springframework.context.annotation.Configuration;
 /**
  * product-service AMQP 설정
  *
- * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ [기존] order.created.exchange (Direct) → order.created.queue               │
- * │                                                                             │
- * │ [신규] wish.added.notification.exchange (Direct)                            │
- * │          → wish.added.notification.queue                                    │
- * │          routing key: wish.added.notification                               │
- * │        Consumer: notification-service WishAddedNotificationConsumer         │
- * │                                                                             │
- * │ [신규] wish.price.notification.exchange (Direct)                            │
- * │          → wish.price.notification.queue                                    │
- * │          routing key: wish.price.notification                               │
- * │        Consumer: notification-service WishPriceNotificationConsumer         │
- * └─────────────────────────────────────────────────────────────────────────────┘
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ [기존] order.created.exchange  → order.created.queue                    │
+ * │ [기존] wish.added.notification.exchange → wish.added.notification.queue │
+ * │ [기존] wish.price.notification.exchange → wish.price.notification.queue │
+ * │                                                                          │
+ * │ [신규] report.product.delete.exchange → report.product.delete.queue     │
+ * │   Publisher: swaply-report-service                                       │
+ * │   Consumer : 이 서비스(ReportProductDeleteConsumer)                       │
+ * └──────────────────────────────────────────────────────────────────────────┘
  */
 @Configuration
 public class AmqpConfig {
 
-    // ── 기존: 주문 생성 이벤트 ──────────────────────────────────────────────────
-    public static final String ORDER_CREATED_EXCHANGE   = "order.created.exchange";
-    public static final String ORDER_CREATED_QUEUE      = "order.created.queue";
+    // ── 기존: 주문 생성 ──────────────────────────────────────────────────────
+    public static final String ORDER_CREATED_EXCHANGE    = "order.created.exchange";
+    public static final String ORDER_CREATED_QUEUE       = "order.created.queue";
     public static final String ORDER_CREATED_ROUTING_KEY = "order.created";
 
-    // ── 신규: 찜 추가 알림 ──────────────────────────────────────────────────────
+    // ── 기존: 찜 추가 알림 ────────────────────────────────────────────────────
     public static final String WISH_ADDED_EXCHANGE = "wish.added.notification.exchange";
     public static final String WISH_ADDED_QUEUE    = "wish.added.notification.queue";
     public static final String WISH_ADDED_KEY      = "wish.added.notification";
 
-    // ── 신규: 가격 변동 알림 ────────────────────────────────────────────────────
+    // ── 기존: 가격 변동 알림 ──────────────────────────────────────────────────
     public static final String WISH_PRICE_EXCHANGE = "wish.price.notification.exchange";
     public static final String WISH_PRICE_QUEUE    = "wish.price.notification.queue";
     public static final String WISH_PRICE_KEY      = "wish.price.notification";
 
-    // ── 기존: 주문 생성 ─────────────────────────────────────────────────────────
+    // ── 신규: 신고 승인 상품 소프트 삭제 ─────────────────────────────────────
+    public static final String REPORT_PRODUCT_DELETE_EXCHANGE = "report.product.delete.exchange";
+    public static final String REPORT_PRODUCT_DELETE_QUEUE    = "report.product.delete.queue";
+    public static final String REPORT_PRODUCT_DELETE_KEY      = "report.product.delete";
+
     @Bean
     public Declarables orderCreatedDeclare() {
         DirectExchange exchange = new DirectExchange(ORDER_CREATED_EXCHANGE, true, false);
@@ -51,7 +51,6 @@ public class AmqpConfig {
         return new Declarables(exchange, queue, binding);
     }
 
-    // ── 신규: 찜 추가 알림 ──────────────────────────────────────────────────────
     @Bean
     public Declarables wishAddedDeclare() {
         DirectExchange exchange = new DirectExchange(WISH_ADDED_EXCHANGE, true, false);
@@ -60,7 +59,6 @@ public class AmqpConfig {
         return new Declarables(exchange, queue, binding);
     }
 
-    // ── 신규: 가격 변동 알림 ────────────────────────────────────────────────────
     @Bean
     public Declarables wishPriceDeclare() {
         DirectExchange exchange = new DirectExchange(WISH_PRICE_EXCHANGE, true, false);
@@ -69,7 +67,14 @@ public class AmqpConfig {
         return new Declarables(exchange, queue, binding);
     }
 
-    // ── 공통: JSON 컨버터 & RabbitTemplate ──────────────────────────────────────
+    @Bean
+    public Declarables reportProductDeleteDeclare() {
+        DirectExchange exchange = new DirectExchange(REPORT_PRODUCT_DELETE_EXCHANGE, true, false);
+        Queue queue = QueueBuilder.durable(REPORT_PRODUCT_DELETE_QUEUE).build();
+        Binding binding = BindingBuilder.bind(queue).to(exchange).with(REPORT_PRODUCT_DELETE_KEY);
+        return new Declarables(exchange, queue, binding);
+    }
+
     @Bean
     public Jackson2JsonMessageConverter jackson2JsonMessageConverter() {
         return new Jackson2JsonMessageConverter();

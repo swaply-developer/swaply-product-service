@@ -57,6 +57,7 @@ public class Product {
     @Column(nullable = false)
     private String tradeType;
 
+    // ── 팩토리 메서드 ──────────────────────────────────────────────────────────
     public static Product create(Long sellerId, Category category, Brand brand,
                                  String title, String description, BigDecimal price,
                                  String tradeType) {
@@ -77,6 +78,8 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     private List<ProductImage> images = new ArrayList<>();
 
+    // ── 비즈니스 메서드 ────────────────────────────────────────────────────────
+
     public void updateStatus(ProductStatus newStatus) {
         this.status = newStatus;
     }
@@ -94,11 +97,18 @@ public class Product {
     }
 
     /**
-     * 가격 변경 비즈니스 메서드.
-     * ProductService.updatePrice() 에서 호출되며,
+     * 가격 변경.
      * 변경 전 가격은 서비스 레이어에서 별도로 캡처해 알림 메시지에 담는다.
      */
     public void updatePrice(BigDecimal newPrice) {
         this.price = newPrice;
+    }
+
+    /**
+     * 신고 승인으로 인한 강제 삭제.
+     * 별도 컬럼 없이 기존 status = DELETED 를 사용한다.
+     */
+    public void markDeleted() {
+        this.status = ProductStatus.DELETED;
     }
 }
