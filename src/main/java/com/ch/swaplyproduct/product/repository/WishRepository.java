@@ -27,4 +27,7 @@ public interface WishRepository extends JpaRepository<Wish, Long> {
     // 신규: 특정 상품을 찜한 모든 회원 ID 조회 (가격 변동 알림용)
     @Query("select w.memberId from Wish w where w.productId = :productId")
     List<Long> findAllMemberIdsByProductId(@Param("productId") Long productId);
+
+    // 상품 삭제 시 해당 상품의 찜 데이터 전체 삭제
+    void deleteByProductId(Long productId);
 }

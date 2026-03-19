@@ -3,6 +3,7 @@ package com.ch.swaplyproduct.service;
 import com.ch.swaplyproduct.message.WishNotificationPublisher;
 import com.ch.swaplyproduct.message.WishPriceMessage;
 import com.ch.swaplyproduct.product.dto.ProductCreateRequest;
+import com.ch.swaplyproduct.product.dto.ProductUpdateRequest;
 import com.ch.swaplyproduct.product.dto.ProductResponse;
 import com.ch.swaplyproduct.product.dto.ProductSummaryDto;
 import com.ch.swaplyproduct.product.entity.*;
@@ -43,9 +44,9 @@ public class ProductService {
     private final WishRepository wishRepository;
     private final WishNotificationPublisher wishNotificationPublisher;
 
-        /* =====================================================
-       1️⃣ 상품 등록 (카테고리/브랜드 연동)
-       ===================================================== */
+    /* =====================================================
+   1️⃣ 상품 등록 (카테고리/브랜드 연동)
+   ===================================================== */
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request,
                                          List<MultipartFile> images,
@@ -351,6 +352,110 @@ public class ProductService {
             log.error("[updatePrice] 가격 변동 알림 발행 실패: productId={}, error={}",
                     productId, e.getMessage(), e);
         }
+    }
+
+    /* =====================================================
+       🆕 상품 수정 (PUT /api/products/{id})
+       ===================================================== */
+    @Transactional
+    public ProductResponse updateProduct(Long productId,
+                                         ProductUpdateRequest request,
+                                         List<MultipartFile> images,
+                                         Long requesterId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다: " + productId));
+
+        // 판매자 본인 검증
+        if (requesterId != null && !product.getSellerId().equals(requesterId)) {
+            throw new IllegalStateException("본인의 상품만 수정할 수 있습니다.");
+        }
+
+        // 카테고리 조회
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+
+        // 브랜드 결정 (ProductCreateRequest와 동일 로직)
+        Brand brand = resolveBrandForUpdate(request, category);
+
+        // 엔티티 업데이트
+        product.update(category, brand,
+                request.getTitle(), request.getDescription(),
+                request.getPrice(), request.getTradeType());
+
+        // 이미지가 새로 전송된 경우 기존 이미지 교체
+        if (images != null && !images.isEmpty()) {
+            // 기존 이미지 삭제
+            productImageRepository.deleteByProduct_ProductId(productId);
+
+            String uploadDir = "uploads/";
+            java.io.File dir = new java.io.File(uploadDir);
+            if (!dir.exists()) dir.mkdirs();
+
+            for (int i = 0; i < images.size(); i++) {
+                MultipartFile file = images.get(i);
+                String filename = productId + "_edit_" + i + ".jpg";
+                java.io.File dest = new java.io.File(dir.getAbsolutePath() + java.io.File.separator + filename);
+                try {
+                    file.transferTo(dest);
+                    ProductImage pi = ProductImage.create(product, "/uploads/" + filename, (i == 0), i);
+                    productImageRepository.save(pi);
+                } catch (Exception e) {
+                    throw new RuntimeException("이미지 저장 중 오류 발생", e);
+                }
+            }
+        }
+
+        List<ProductImage> imgs = productImageRepository
+                .findByProduct_ProductIdOrderBySortOrderAsc(productId);
+        return ProductResponse.fromWithImages(product, imgs);
+    }
+
+    private Brand resolveBrandForUpdate(ProductUpdateRequest request, Category category) {
+        if (request.getBrandId() != null) {
+            return brandRepository.findById(request.getBrandId()).orElse(null);
+        }
+        String brandName = request.getBrandName();
+        if (brandName != null && !brandName.isBlank()) {
+            return brandRepository
+                    .findByCategoryCategoryIdAndName(category.getCategoryId(), brandName.trim())
+                    .orElseGet(() -> brandRepository.save(
+                            Brand.create(brandName.trim(), null, null, category)));
+        }
+        return null;
+    }
+
+    /* =====================================================
+       🆕 판매 취소 = 상품 삭제
+       순서: 찜 삭제 → 이미지 삭제 → 상품 삭제
+       ===================================================== */
+    @Transactional
+    public void deleteProduct(Long productId, Long requesterId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다: " + productId));
+
+        if (requesterId != null && !product.getSellerId().equals(requesterId)) {
+            throw new IllegalStateException("본인의 상품만 삭제할 수 있습니다.");
+        }
+
+        // 1. 찜 데이터 삭제 (Wish는 FK 없이 productId Long으로 저장)
+        wishRepository.deleteByProductId(productId);
+
+        // 2. 이미지 파일 + DB 레코드 삭제
+        List<com.ch.swaplyproduct.product.entity.ProductImage> imgs =
+                productImageRepository.findByProduct_ProductIdOrderBySortOrderAsc(productId);
+        for (com.ch.swaplyproduct.product.entity.ProductImage img : imgs) {
+            String path = img.getImageUrl(); // e.g. /uploads/1_0.jpg
+            if (path != null && !path.isBlank()) {
+                java.io.File file = new java.io.File("." + path);
+                if (file.exists()) file.delete();
+            }
+        }
+        productImageRepository.deleteByProduct_ProductId(productId);
+
+        // 3. 상품 삭제
+        productRepository.deleteById(productId);
+
+        log.info("[상품 삭제] productId={}, requesterId={}", productId, requesterId);
     }
 
         /* =====================================================

@@ -84,6 +84,18 @@ public class Product {
         this.status = newStatus;
     }
 
+    /** 상품 정보 수정 (판매자 본인만 호출 가능) */
+    public void update(Category category, Brand brand,
+                       String title, String description,
+                       BigDecimal price, String tradeType) {
+        this.category    = category;
+        this.brand       = brand;
+        this.title       = title;
+        this.description = description;
+        this.price       = price;
+        this.tradeType   = tradeType;
+    }
+
     /**
      * 가격 변경.
      * 변경 전 가격은 서비스 레이어에서 별도로 캡처해 알림 메시지에 담는다.
