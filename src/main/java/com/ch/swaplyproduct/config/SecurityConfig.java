@@ -37,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/wishes/**").permitAll()    // ✅ 찜 목록
                         .requestMatchers("/api/brands/**").permitAll()
                         .requestMatchers("/api/admin/**").permitAll()
+                        .requestMatchers("/api/internal/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )
