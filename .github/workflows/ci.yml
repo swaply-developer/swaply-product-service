@@ -158,13 +158,21 @@ jobs:
               echo "RabbitMQ is UP"
               break
             fi
-            echo "waiting rabbitmq...($i)"
+            echo "waiting RabbitMQ...($i)"
             sleep 2
           done
           bash -c '</dev/tcp/127.0.0.1/5672'
 
       - name: Run tests
-        run: ./gradlew clean test --no-daemon
+        run: ./gradlew clean test --no-daemon --stacktrace --info
+
+      - name: Dump test result xml on failure
+        if: failure()
+        run: |
+          echo "===== build/test-results/test ====="
+          find build/test-results/test -type f -name "*.xml" -print -exec cat {} \;
+          echo "===== build/reports/tests/test ====="
+          ls -R build/reports/tests/test || true
 
       - name: Build bootJar
         run: ./gradlew bootJar --no-daemon
