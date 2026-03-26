@@ -9,10 +9,6 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
 
-
-  config:
-    import: "optional:configserver:http://localhost:8881"
-
   servlet:
     multipart:
       max-file-size: 50MB

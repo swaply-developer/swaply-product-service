@@ -17,8 +17,8 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins(
-                        "http://localhost:5173",  // ✅ 추가 (Vite 기본 포트)
-                        "http://localhost:5174"   // ✅ 기존 유지
+                        "http://34.64.87.67.nip.io:5173",  // ✅ 추가 (Vite 기본 포트)
+                        "http://34.64.87.67.nip.io:5174"   // ✅ 기존 유지
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                 .allowedHeaders("*")

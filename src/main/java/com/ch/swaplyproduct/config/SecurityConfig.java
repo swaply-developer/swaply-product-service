@@ -20,7 +20,7 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Value("${app.frontend-url:http://localhost:5173}")
+    @Value("${app.frontend-url:http://34.64.87.67.nip.io:5173}")
     private String frontendUrl;
 
     @Bean
@@ -51,9 +51,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:5174",
-                "http://localhost:8882"
+                "http://34.64.87.67.nip.io:5173",
+                "http://34.64.87.67.nip.io:5174",
+                "http://34.64.87.67.nip.io:8882"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
