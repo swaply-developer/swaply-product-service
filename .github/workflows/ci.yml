@@ -80,7 +80,7 @@ jobs:
       # Flyway
       SPRING_FLYWAY_URL: jdbc:mysql://127.0.0.1:3306/swaply?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
       SPRING_FLYWAY_USER: swaply
-      SPRING_FLYWAY_PASSWORD: 
+      SPRING_FLYWAY_PASSWORD: 1234
 
       # Redis
       SPRING_DATA_REDIS_HOST: 127.0.0.1
